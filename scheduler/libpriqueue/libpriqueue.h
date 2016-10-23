@@ -8,13 +8,14 @@
 /**
  *  Node Structure
  */
+typedef struct node_t node_t;
 
-typedef struct _node_t
+struct node_t
 {
     void *mvalue;
     node_t *mnext;
     
-} node_t;
+};
 
 /**
   Priqueue Data Structure

@@ -37,17 +37,15 @@ int priqueue_offer(priqueue_t *q, void *ptr)
 {
     //returning the index
     //if queue is empty
-    if(q->size == 0)
+    if(q->msize == 0)
     {
         node_t *temp = malloc(sizeof(node_t));
         temp->mvalue = ptr;
         temp->mnext = NULL;
         q->mfront = temp;
-        //see if mback is neccessary...
-        q->mback = temp;
         q->msize++;
     
-        return 0;
+        return q->msize;
     } 
     //if the queue contains at least one node we have to compare the ptr to
     else 
@@ -59,24 +57,38 @@ int priqueue_offer(priqueue_t *q, void *ptr)
         temp->mvalue = ptr;
         temp->mnext = NULL;
         int index = 0;
+        
+        void *slidePtr; 
         //slide through the queue using current
         //in loop, set prev to current as you slide through so you know if you're at front of the list
         while(current != NULL){
-            //this could be backwards... greater priority? less than?
-            //if the ptr value is at a place we should insert, shift everything down
-            //queue test compare1 , if a is larger, return positive value
             if(q->comparer((temp->mvalue), (current->mvalue)) < 0){
+                while(current != NULL){
+                    slidePtr = current->mvalue;
+                    current->mvalue = temp->mvalue;
+                    temp->mvalue = slidePtr;
+                    if(current->mnext == NULL){
             
-                //FINISH HERE!
-                //put cases in here, if current is mfront, mback, or in middle
+                        current->mnext = temp;
+                        break; 
+                    }
+                    current = current->mnext;
+                }
+                break;
             }
+            index++;
+            if(current->mnext == NULL){
+            
+                current->mnext = temp;
+                break;
+            }
+            current = current->mnext;
+            
         }
         
         q->msize++;
         return index;
     }
-        //good check
-	return -1;
 }
 
 
@@ -90,7 +102,7 @@ int priqueue_offer(priqueue_t *q, void *ptr)
  */
 void *priqueue_peek(priqueue_t *q)
 {
-        if(q->size != 0)
+        if(q->msize != 0)
         {
         
             return q->mfront;
@@ -109,16 +121,21 @@ void *priqueue_peek(priqueue_t *q)
  */
 void *priqueue_poll(priqueue_t *q)
 {
-        //if q->msize > 0
-        //remove
-        //temp = mfront
-        // tempval = temp->mvalue
-        // mfront = mfront->mnext
-        // q->msize--
-        //free(temp) 
-        //return tempval
-        //don't forget to free tempval when it's a job in scheduler
-	return NULL;
+    if(q->msize > 0){
+        node_t *temp = q->mfront;
+        if(q->mfront->mnext != NULL){
+            
+            q->mfront = q->mfront->mnext;
+        } else {
+            
+            q->mfront = NULL;
+        }
+        void *tempReturn = temp->mvalue;
+        free(temp);
+        q->msize--;
+        return  tempReturn;
+    }
+    return NULL;
 }
 
 
@@ -133,8 +150,7 @@ void *priqueue_poll(priqueue_t *q)
  */
 void *priqueue_at(priqueue_t *q, int index)
 {
-        // I see no harm in calling priqueue_at on the head, but make sure it's okay
-        if(index >= 0 && index < (q->size - 1)){
+        if (index >= 0){
             int i = 0;
             node_t *temp = q->mfront;
             while(temp != NULL){
@@ -164,9 +180,43 @@ void *priqueue_at(priqueue_t *q, int index)
  */
 int priqueue_remove(priqueue_t *q, void *ptr)
 {
+    if(q->msize == 0){
 	return 0;
+    } else {
+    
+        int count = 0;
+        node_t *current = q->mfront;
+        node_t *prev = q->mfront;
+        //take care of all matching pointers at the front
+        while(current != NULL && current->mvalue == ptr){
+        
+            q->mfront = current->mnext;
+            free(current);
+            current = q->mfront;
+            q->msize--;
+            count++;
+        }
+        //all others
+        while(current != NULL){
+            //continue while the value is not equal to the pointer
+            while(current!=NULL && current->mvalue != ptr){
+                prev = current;
+                current = current->mnext;
+            }
+            if(current == NULL){
+            
+                return count;
+            }
+            prev->mnext = current->mnext;
+            free(current);
+            current = prev->mnext;
+            count++;
+            q->msize--;
+            printf("%d\n", q->msize);
+        }
+        return count;
+    }
 }
-
 
 /**
   Removes the specified index from the queue, moving later elements up
@@ -179,7 +229,39 @@ int priqueue_remove(priqueue_t *q, void *ptr)
  */
 void *priqueue_remove_at(priqueue_t *q, int index)
 {
-	return 0;
+        node_t *current;
+        node_t *next;
+        node_t *prev;
+        if(q->msize > 0){
+        
+            if(priqueue_at(q, index) != NULL){
+            
+                node_t *temp = priqueue_at(q, index);
+                void *tempReturn = temp->mvalue;
+                if(temp == q->mfront && temp == q->mback){
+                
+                    q->mfront == NULL;
+                    q->mback == NULL;
+                } else if (temp == q->mfront){
+                
+                    q->mfront = temp->mnext;
+                } else if (temp == q->mback){
+                
+                    q->mback= priqueue_at(q, index - 1);
+                    q->mback->mnext = NULL; //check if neccessary 
+                } else {
+                
+                    prev = priqueue_at(q, index - 1);
+                    next = priqueue_at(q, index + 1);
+                    prev->mnext = next;
+                }
+                free(temp);
+                q->msize --; 
+                return tempReturn;
+                
+            }
+        }
+	return NULL;
 }
 
 
