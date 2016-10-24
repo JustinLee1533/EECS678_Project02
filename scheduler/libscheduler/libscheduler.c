@@ -29,10 +29,10 @@ typedef struct _job_t
 //need variables to calculate avg waiting time
 //avg turnaround time
 //avg response time
-float totalWaitingTime; //average waiting time
-float totalResponseTime; //average response time
-float totalTATime; //average turnaround time
-int numOfJobs; //number of jobs
+float totalWaitingTime; //total waiting time
+float totalResponseTime; //total response time
+float totalTATime; //total turnaround time
+int numOfJobs; //number of jobs for the scheduler
 
 //we have to do compare functions
 //prototype: int comparer(const void *elem1, const void *elem2);
@@ -183,7 +183,7 @@ int scheduler_job_finished(int core_id, int job_number, int time)
     //TODO: update total waiting time
     //TODO: update total turn around time
     //TODO: update total response time
-    //TODO: update number of jobs
+ 
 
 	return -1;
 }
