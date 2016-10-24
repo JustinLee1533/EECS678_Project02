@@ -29,9 +29,9 @@ typedef struct _job_t
 //need variables to calculate avg waiting time
 //avg turnaround time
 //avg response time
-float avgWaitingTime; //average waiting time
-float avgResponseTime; //average response time
-float avgTATime; //average turnaround time
+float totalWaitingTime; //average waiting time
+float totalResponseTime; //average response time
+float totalTATime; //average turnaround time
 int numOfJobs; //number of jobs
 
 //we have to do compare functions
@@ -53,7 +53,7 @@ int FCFScomparer(const void *a, const void *b){
  * SJF
  * Shortest job first compare function
  */
-int SJFcomparer(const void *a, const void *b{
+int SJFcomparer(const void *a, const void *b){
    job_t *jobA = (job_t *)a;
    job_t *jobB = (job_t *)b;
    //we want ascending order for running time, so put a before b
@@ -180,6 +180,10 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
 int scheduler_job_finished(int core_id, int job_number, int time)
 {
   //TODO: justin do this
+    //TODO: update total waiting time
+    //TODO: update total turn around time
+    //TODO: update total response time
+    //TODO: update number of jobs
 
 	return -1;
 }
@@ -214,7 +218,7 @@ int scheduler_quantum_expired(int core_id, int time)
 float scheduler_average_waiting_time()
 {
   //TODO: Liia do this
-	return 0.0;
+	return totalWaitingTime/numOfJobs;
 }
 
 
@@ -228,7 +232,7 @@ float scheduler_average_waiting_time()
 float scheduler_average_turnaround_time()
 {
   //TODO: Liia do this
-	return 0.0;
+	return totalTATime/numOfJobs;
 }
 
 
@@ -242,7 +246,7 @@ float scheduler_average_turnaround_time()
 float scheduler_average_response_time()
 {
   //TODO: Liia do this
-	return 0.0;
+    return totalResponseTime / numOfJobs;
 }
 
 
@@ -255,6 +259,7 @@ float scheduler_average_response_time()
 void scheduler_clean_up()
 {
   //TODO: Liia do this
+    
 
 }
 
