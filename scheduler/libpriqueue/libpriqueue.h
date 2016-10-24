@@ -7,9 +7,11 @@
 
 /**
  *  Node Structure
+ *  Member variables:
+ *      mvalue = the void * value stored in the node
+ *      mnext = the node pointer to the next node in the queue
  */
 typedef struct node_t node_t;
-
 struct node_t
 {
     void *mvalue;
@@ -18,11 +20,16 @@ struct node_t
 };
 
 /**
-  Priqueue Data Structure
+*  Priqueue Data Structure
+*  Member variables:
+*       msize = the size of the priority queue
+*       comparer = the compare function used to determine the order of the nodes in the queue
+*       mfront = a node pointer to the front of the queue
+*       mback = a node pointer to the back of the queue
 */
 typedef struct _priqueue_t
 {
-    int msize; //make sure this doesn't need to be size_t
+    int msize; //we can use size_t later if neccessary
     int(*comparer)(const void *, const void *);
     node_t *mfront;
     node_t *mback; //make sure this is neccessary
