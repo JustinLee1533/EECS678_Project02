@@ -8,6 +8,14 @@
 #include "libscheduler.h"
 #include "../libpriqueue/libpriqueue.h"
 
+
+//TODO Create global queue and create cores accordingly
+//TODO Figure out what information a core should contain
+//REFERENCE: Lecture notes from 10/4, slide 30
+
+priqueue_t *q; 
+
+
 /**
   Stores information making up a job to be scheduled including any statistics.
   You may need to define some global variables or a struct to store your job queue elements.
@@ -22,26 +30,19 @@ typedef struct _job_t
     int runningTime; //running time passed in
     int timeRemaining; //runningTime - time it has been executed
     
+    //WILL PROBABLY NEED A CORE THINGY HERE EVENTUALLY
+    
 
 
 } job_t;
 
-//need variables to calculate avg waiting time
-//avg turnaround time
-//avg response time
 float totalWaitingTime; //total waiting time
 float totalResponseTime; //total response time
 float totalTATime; //total turnaround time
 int numOfJobs; //number of jobs for the scheduler
-
-//we have to do compare functions
-//prototype: int comparer(const void *elem1, const void *elem2);
-//FCFS, SJF, PSJF, PRI, PPRI, RR
 /**
  * FCFS 
  * First come first serve compare function
- * 
- * needed? 
  */
 int FCFScomparer(const void *a, const void *b){
    job_t *jobA = (job_t *)a;
@@ -129,6 +130,9 @@ int RRcomparer(const void *a, const void *b){
 void scheduler_start_up(int cores, scheme_t scheme)
 {
   //TODO: justin do this
+    //TODO : scheme_t is an enum, do a case thing or if else statement for the schemes
+    //sample thingy 
+   // priqueue_init(q, FCFScomparer);
 
 }
 
@@ -183,6 +187,11 @@ int scheduler_job_finished(int core_id, int job_number, int time)
     //TODO: update total waiting time
     //TODO: update total turn around time
     //TODO: update total response time
+    totalResponseTime += time;
+    totalWaitingTime += time;
+    totalTATime += time;
+    //priqueue_poll(q);
+    //check if another job arrived?
  
 
 	return -1;
@@ -217,7 +226,6 @@ int scheduler_quantum_expired(int core_id, int time)
  */
 float scheduler_average_waiting_time()
 {
-  //TODO: Liia do this
 	return totalWaitingTime/numOfJobs;
 }
 
@@ -231,7 +239,6 @@ float scheduler_average_waiting_time()
  */
 float scheduler_average_turnaround_time()
 {
-  //TODO: Liia do this
 	return totalTATime/numOfJobs;
 }
 
@@ -245,7 +252,6 @@ float scheduler_average_turnaround_time()
  */
 float scheduler_average_response_time()
 {
-  //TODO: Liia do this
     return totalResponseTime / numOfJobs;
 }
 
