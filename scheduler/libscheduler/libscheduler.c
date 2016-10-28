@@ -29,6 +29,11 @@ typedef struct _job_t
     int runningTime; //running time passed in
     int timeRemaining; //runningTime - time it has been executed
     int core; // zero indexed core on which the job is running, -1 if idle
+    
+    int waitTime;
+    int responseTime;
+    int turnAroundTime;
+    
 } job_t;
 
 /*
@@ -44,6 +49,9 @@ float totalWaitingTime; //total waiting time
 float totalResponseTime; //total response time
 float totalTATime; //total turnaround time
 int numOfJobs; //number of jobs for the scheduler
+
+int 
+
 
 /**
  * FCFS
@@ -174,7 +182,6 @@ void scheduler_start_up(int cores, scheme_t scheme)
     for(int i = 0; i<cores; i++)
       coreArr[i] = -1;
 
-    //sample thingy
 }
 
 
@@ -201,8 +208,22 @@ void scheduler_start_up(int cores, scheme_t scheme)
 int scheduler_new_job(int job_number, int time, int running_time, int priority)
 {
   //TODO: justin do this
+    //Figure out which core it should run on eventually
+    job_t *temp = malloc(sizeof(job_t));
+    temp->pid = job_number;
+    
+    temp->arrivalTime = time;
+    
+    temp->runningTime = running_time;
+    temp->timeRemaining = running_time;
+    
+    temp->priority = priority;
+    
+    
 
 	return -1;
+        
+    numOfJobs++;
 }
 
 
@@ -226,12 +247,13 @@ int scheduler_job_finished(int core_id, int job_number, int time)
     //TODO: update total waiting time
     //TODO: update total turn around time
     //TODO: update total response time
-    totalResponseTime += time;
-    totalWaitingTime += time;
+    totalResponseTime += time; //THIS NEEDS TO BE ADJUSTED
+    totalWaitingTime += time; 
     totalTATime += time;
     //priqueue_poll(q);
     //check if another job arrived?
-
+    
+    
 
 	return -1;
 }
@@ -264,7 +286,7 @@ int scheduler_quantum_expired(int core_id, int time)
  */
 float scheduler_average_waiting_time()
 {
-	return totalWaitingTime/numOfJobs;
+	return (float) (totalWaitingTime/numOfJobs);
 }
 
 
@@ -276,7 +298,7 @@ float scheduler_average_waiting_time()
  */
 float scheduler_average_turnaround_time()
 {
-	return totalTATime/numOfJobs;
+	return (float)(totalTATime/numOfJobs);
 }
 
 
@@ -288,7 +310,7 @@ float scheduler_average_turnaround_time()
  */
 float scheduler_average_response_time()
 {
-    return totalResponseTime / numOfJobs;
+    return (float)(totalResponseTime / numOfJobs);
 }
 
 
