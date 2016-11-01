@@ -223,6 +223,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
     temp->priority = priority;
 
     temp->responseTime = -1;
+    priqueue_offer(&q, temp);
 
     //single core
     if(numCores == 1)
@@ -242,7 +243,6 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
             } else {
 
                 //schedule on queue
-                priqueue_offer(&q, temp);
                 return(-1);
             }
         break;
@@ -259,13 +259,11 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                 //if new job is of higher priority than job currently running on core
                 if(temp->priority > coreArr[0]->priority){
                     //stop current job on core, put on queue
-                    priqueue_offer(&q, coreArr[0]);
                     coreArr[0] = temp;
                     return(0);
 
                 } else {
 
-                    priqueue_offer(&q, temp);
                     return(-1);
                 }
             }
@@ -291,9 +289,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
               {
                 //remove job from core
                 //update its timeRemaining,
-
                 //add old job back to the queue
-                priqueue_offer(&q, coreArr[0]);
 
                 temp->lastScheduled = time;
 
@@ -304,7 +300,6 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
               {
                 //add new job to the priority queue
                 coreArr[0]->lastScheduled = time;
-                priqueue_offer(&q, temp);
                 return(-1);
               }
             }
@@ -321,7 +316,8 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
 
             break;
       }
-    } else {
+    }else
+    {
 
         //TODO put multicore stuff here
         int coreIndex = -1;
@@ -344,10 +340,10 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
             switch(schedScheme)
             {
                 //non-preemptive
+
                 case FCFS :
                 case SJF :
                 case PRI :
-                    priqueue_offer(&q, temp);
                     return (-1);
                     break;
 
@@ -355,17 +351,15 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                 //check premption contidtion
                 case PPRI :
 
-                    priqueue_offer(&q, temp);
                     break;
                 case PSJF :
                     break;
                 case RR :
-                    priqueue_offer(&q, temp);
                     break;
             }
         }
     }
-    
+
 	return -1;
 }
 
@@ -512,7 +506,16 @@ void scheduler_clean_up()
 void scheduler_show_queue()
 {
   //TODO: Liia do this
+  node_t* temp = q.mfront;
   for(int i = 0; i< priqueue_size(&q); i++)
-    printf("%d (%d)",i, coreArr[i]->core );
+  {
+    //print job and the core that its running on
+    job_t* valptr = (job_t*)(temp->mvalue);
+    //*job_t coreptr = (*job_t)(temp->mvalue);
+
+
+    printf("   %d (%d) ", valptr->pid, valptr->core);
+    temp = temp->mnext;
+  }
 
 }
