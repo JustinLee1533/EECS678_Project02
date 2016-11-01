@@ -84,7 +84,7 @@ int PSJFcomparer(const void *a, const void *b){
    job_t *jobA = (job_t *)a;
    job_t *jobB = (job_t *)b;
    //if running time of A is less than the remaining time of B, schedule it before
-   return (jobA->runningTime - jobB->timeRemaining);
+   return (jobA->timeRemaining - jobB->timeRemaining);
 }
 /**
  * PRI
@@ -114,7 +114,7 @@ int PPRIcomparer(const void *a, const void *b){
        return (jobA->priority - jobB->priority);
    }
    //if the priorities are the same, go off of job time
-   return (jobA->runningTime - jobB->timeRemaining);
+   return (jobA->timeRemaining- jobB->timeRemaining);
 }
 /**
  * RR
@@ -221,7 +221,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
     temp->priority = priority;
 
     temp->responseTime = -1;
-    priqueue_offer(&q, temp);
+    //priqueue_offer(&q, temp);
 
     //single core
     if(numCores == 1)
@@ -239,13 +239,14 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
              coreArr[0]->lastScheduled = time;
              return(0);
             } else {
-                
+                priqueue_offer(&q, temp);
                 return(-1);
             }
         break;
 
         //Preemptive
-        //check premption contidtion
+        //check premption condition
+        //GO BACK AND FIX THIS JUST IN CASE PRIORITIES ARE THE SAME!!!
         case PPRI :
             if(coreArr[0] == NULL) {
              //if not make it run on the core
@@ -255,7 +256,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
              return(0);
             } else {
                 //if new job is of higher priority than job currently running on core
-                if( priority < coreArr[0]->priority){
+                if( priority < coreArr[0]->priority || ){
                     //stop current job on core, put on queue
                     priqueue_offer(&q, coreArr[0]);
                     coreArr[0] = temp;
@@ -264,6 +265,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                     return(0);
                   
                 } else {
+                    priqueue_offer(&q, temp);
                     return(-1);
                 }
             }
@@ -289,6 +291,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                 //remove job from core
                 //update its timeRemaining,
                 //add old job back to the queue
+                  priqueue_offer(&q, coreArr[0]);
 
                 temp->lastScheduled = time;
 
@@ -299,6 +302,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
               {
                 //add new job to the priority queue
                 coreArr[0]->lastScheduled = time;
+                priqueue_offer(&q, temp);
                 return(-1);
               }
             }
@@ -350,13 +354,20 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
 
                 //Preemptive
                 //check premption contidtion
-                case PPRI :
-                    break;
                 case PSJF :
+                    break;
+                case PPRI :
+                    //time 34
+                    //update time difference
+                    for(int i = 0; i < numCores; i++){
+                    
+                        int timeDiff = time - coreArr[i]->lastScheduled;
+                        coreArr[i]->timeRemaining -= timeDiff;
+                    }
                     lowestPriority = coreArr[0]->priority;
                     lowestIndex = 0;
                     tie = 0;
-                    for(int i = 0; i < numCores; i++){
+                    for(int i = 1; i < numCores; i++){
                     
                         //if lower priority then update lowest priority and lowest index
                         if(coreArr[i]->priority > lowestPriority){
@@ -366,7 +377,10 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                             tie = 0;
                         } else if (coreArr[i]->priority == lowestPriority){
                         
-                            tie++;
+                            if(coreArr[i]->timeRemaining > coreArr[lowestIndex]->timeRemaining){
+                                
+                                    lowestIndex = i;
+                            }
                         }
                     }
                     if(lowestPriority > priority){
@@ -394,7 +408,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                                 coreArr[lowestIndex]->lastScheduled = time;
                                 return lowestIndex;
                             } else {
-                            
+                                coreArr[lowestIndex]->lastScheduled = time;
                                 priqueue_offer(&q, temp);
                                 return -1;
                             }
@@ -408,15 +422,21 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                                 coreArr[lowestIndex]->lastScheduled = time;
                                 return lowestIndex;
                             } else {
-                            
+                                coreArr[lowestIndex]->lastScheduled = time;
                                 priqueue_offer(&q, temp);
                                 return -1;
                             }
                         }
+                    } else {
+                        coreArr[lowestIndex]->lastScheduled = time;
+                        priqueue_offer(&q, temp);
+                        return -1;
+                        
                     }
                     
                     break;
                 case RR :
+                    return -1;
                     break;
             }
         }
