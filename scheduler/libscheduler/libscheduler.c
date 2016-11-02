@@ -51,6 +51,7 @@ float totalWaitingTime; //total waiting time
 float totalResponseTime; //total response time
 float totalTATime; //total turnaround time
 int numOfJobs; //number of jobs for the scheduler
+int prevTime = 0;
 
 
 
@@ -343,6 +344,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
             int lowestPriority;
             int lowestIndex;
             int tie;
+            int diff;
             switch(schedScheme)
             {
                 //non-preemptive
@@ -356,7 +358,60 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                 //Preemptive
                 //check premption contidtion
                 case PSJF :
+                //update time difference
 
+                //first time update
+                diff = (time - prevTime);
+                coreArr[0]->timeRemaining -= diff;
+                //coreArr[0]->lastScheduled = time;
+
+
+                int highestRemTime = coreArr[0]->timeRemaining;
+                int highestIndex = 0;
+                // int lowestArrivalTime = coreArr[0]->arrivalTime;
+                // int lowestArrivalTimeIndex = 0;
+
+                //update remaining times and find lowest remaining time
+                for(int i = 1; i < numCores; i++)
+                {
+                    //calculate the new remaining time
+                    //int timeDiff = time - coreArr[i]->lastScheduled;
+                    int timeDiff = time - prevTime;
+                    coreArr[i]->timeRemaining -= timeDiff;
+                    //coreArr[i]->lastScheduled = time;
+
+                    //see if the coreArr[i] remaining time is < than highestRemTime
+                    if(coreArr[i]->timeRemaining > highestRemTime)
+                    {
+                      highestIndex = i;
+                      highestRemTime = coreArr[i]->timeRemaining;
+                    }
+                    //
+                    // if(coreArr[i]->timeRemaining == highestRemTime)
+                    // {
+                    //   if(coreArr[i]->arrivalTime<lowestArrivalTime)
+                    //   {
+                    //     lowestArrivalTime = coreArr[i]->arrivalTime;
+                    //     lowestArrivalTimeIndex = i;
+                    //   }
+                    // }
+                }
+                prevTime = time;
+
+                //check if the lowest remaining time in the coreArr is greater
+                //than  the new job, if so, assign it to that core
+                printf("Highest remaining time: %d at core %d, New Job runtime: %d \n", highestRemTime, highestIndex, running_time);
+                if(highestRemTime > running_time)
+                {
+                  priqueue_offer(&q, coreArr[highestIndex]);
+                  coreArr[highestIndex] = temp;
+                  //coreArr[highestIndex]->lastScheduled = time;
+                  return(highestIndex);
+                }else
+                {
+                  priqueue_offer(&q, temp);
+                  return(-1);
+                }
                     break;
                 case PPRI :
                     lowestPriority = coreArr[0]->priority;
