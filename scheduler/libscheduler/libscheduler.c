@@ -84,7 +84,7 @@ int PSJFcomparer(const void *a, const void *b){
    job_t *jobA = (job_t *)a;
    job_t *jobB = (job_t *)b;
    //if running time of A is less than the remaining time of B, schedule it before
-   return (jobA->arrivalTime - jobB->arrivalTime);
+   return (jobA->timeRemaining - jobB->timeRemaining);
 }
 /**
  * PRI
@@ -251,16 +251,18 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
              //if not make it run on the core
              coreArr[0] = temp;
              coreArr[0]->responseTime = time - coreArr[0]->arrivalTime;
-             coreArr[0]->lastScheduled = time;
              return(0);
             } else {
                 //if new job is of higher priority than job currently running on core
-                if( priority < coreArr[0]->priority){
+                if( priority < coreArr[0]->priority || (priority == coreArr[0]->priority && coreArr[0]->arrivalTime > time)){
                     //stop current job on core, put on queue
+                    if(coreArr[0]->lastScheduled == time){
+                    
+                        coreArr[0]->responseTime = -1;
+                    }
                     priqueue_offer(&q, coreArr[0]);
                     coreArr[0] = temp;
                     coreArr[0]->responseTime = time - coreArr[0]->arrivalTime;
-                    coreArr[0]->lastScheduled = time;
                     return(0);
                   
                 } else {
@@ -334,7 +336,6 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
         if(coreIndex != -1){
             coreArr[coreIndex] = temp;
             coreArr[coreIndex]->responseTime = time - coreArr[coreIndex]->arrivalTime;
-            coreArr[coreIndex]->lastScheduled = time;
             return(coreIndex);
         } else { //otherwise we have to schedule
             
@@ -348,6 +349,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                 case FCFS :
                 case SJF :
                 case PRI :
+                    priqueue_offer(&q, temp);
                     return (-1);
                 break;
 
@@ -356,13 +358,6 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                 case PSJF :
                     break;
                 case PPRI :
-                    //time 34
-                    //update time difference
-                    for(int i = 0; i < numCores; i++){
-                    
-                        int timeDiff = time - coreArr[i]->lastScheduled;
-                        coreArr[i]->timeRemaining -= timeDiff;
-                    }
                     lowestPriority = coreArr[0]->priority;
                     lowestIndex = 0;
                     tie = 0;
@@ -376,17 +371,20 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                             tie = 0;
                         } else if (coreArr[i]->priority == lowestPriority){
                         
-                            if(coreArr[i]->timeRemaining > coreArr[lowestIndex]->timeRemaining){
+                            if(coreArr[i]->arrivalTime > coreArr[lowestIndex]->arrivalTime){
                                 
                                     lowestIndex = i;
                             }
                         }
                     }
                     if(lowestPriority > priority){
+                        if(coreArr[lowestIndex]->lastScheduled == time){
+                    
+                            coreArr[lowestIndex]->responseTime = -1;
+                        }
                         priqueue_offer(&q, coreArr[lowestIndex]);
                         coreArr[lowestIndex] = temp;
                         coreArr[lowestIndex]->responseTime = time - coreArr[lowestIndex]->arrivalTime;
-                        coreArr[lowestIndex]->lastScheduled = time;
                         return lowestIndex;
                         
                     } else if (lowestPriority == priority){
@@ -395,39 +393,42 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                             //start at lowest index and see which has the better run time 
                             for(int i=lowestIndex; i < numCores; i++){
                             
-                                if(coreArr[i]->timeRemaining > coreArr[lowestIndex]->timeRemaining){
+                                if(coreArr[i]->arrivalTime > coreArr[lowestIndex]->arrivalTime){
                                 
                                     lowestIndex = i;
                                 }
                             }
-                            if(coreArr[lowestIndex]->timeRemaining > running_time){
+                            if(coreArr[lowestIndex]->arrivalTime > time){
+                                if(coreArr[lowestIndex]->lastScheduled == time){
+                    
+                                    coreArr[lowestIndex]->responseTime = -1;
+                                }
                                 priqueue_offer(&q, coreArr[lowestIndex]);
                                 coreArr[lowestIndex] = temp;
                                 coreArr[lowestIndex]->responseTime = time - coreArr[lowestIndex]->arrivalTime;
-                                coreArr[lowestIndex]->lastScheduled = time;
                                 return lowestIndex;
                             } else {
-                                coreArr[lowestIndex]->lastScheduled = time;
                                 priqueue_offer(&q, temp);
                                 return -1;
                             }
                             
                         } else {
                         
-                            if(coreArr[lowestIndex]->timeRemaining > running_time){
+                            if(coreArr[lowestIndex]->arrivalTime > time){
+                                if(coreArr[lowestIndex]->lastScheduled == time){
+                    
+                                    coreArr[lowestIndex]->responseTime = -1;
+                                }
                                 priqueue_offer(&q, coreArr[lowestIndex]);
                                 coreArr[lowestIndex] = temp;
                                 coreArr[lowestIndex]->responseTime = time - coreArr[lowestIndex]->arrivalTime;
-                                coreArr[lowestIndex]->lastScheduled = time;
                                 return lowestIndex;
                             } else {
-                                coreArr[lowestIndex]->lastScheduled = time;
                                 priqueue_offer(&q, temp);
                                 return -1;
                             }
                         }
                     } else {
-                        coreArr[lowestIndex]->lastScheduled = time;
                         priqueue_offer(&q, temp);
                         return -1;
                         
@@ -435,6 +436,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                     
                     break;
                 case RR :
+                    priqueue_offer(&q, temp);
                     return -1;
                     break;
             }
@@ -472,9 +474,9 @@ int scheduler_job_finished(int core_id, int job_number, int time) {
         job_t* temp = (job_t*)priqueue_poll(&q);
         //will have to do something for psjf
         coreArr[core_id] = temp;
-        coreArr[core_id]->lastScheduled = time;
         //set the response time that it's now been scheduled
         if(coreArr[core_id]->responseTime == -1) {
+            coreArr[core_id]->lastScheduled = time;
             coreArr[core_id]->responseTime = time - coreArr[core_id]->arrivalTime;
         }
 
