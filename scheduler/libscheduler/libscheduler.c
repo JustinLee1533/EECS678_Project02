@@ -8,10 +8,6 @@
 #include "libscheduler.h"
 #include "../libpriqueue/libpriqueue.h"
 
-//TODO Create global queue and create cores accordingly
-//TODO Figure out what information a core should contain
-//REFERENCE: Lecture notes from 10/4, slide 30
-
 priqueue_t q;
 
 //function pointers
@@ -51,10 +47,6 @@ float totalWaitingTime; //total waiting time
 float totalResponseTime; //total response time
 float totalTATime; //total turnaround time
 int numOfJobs; //number of jobs for the scheduler
-int prevTime = 0;
-
-
-
 
 /**
  * FCFS
@@ -209,8 +201,7 @@ void scheduler_start_up(int cores, scheme_t scheme)
   @return -1 if no scheduling changes should be made.
  */
 
- //TODO: determine if multicore, if multiple are idle, the lowest core_id
- // is it premptive? if so preempt; if not TODO: return the index of the core of the job to be scheuled on
+ // is it premptive? if so preempt;
 int scheduler_new_job(int job_number, int time, int running_time, int priority)
 {
   //TODO: justin do this
@@ -246,7 +237,6 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
 
         //Preemptive
         //check premption condition
-        //GO BACK AND FIX THIS JUST IN CASE PRIORITIES ARE THE SAME!!!
         case PPRI :
             if(coreArr[0] == NULL) {
              //if not make it run on the core
@@ -290,20 +280,23 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
 
               if(coreArr[0]->timeRemaining > running_time)
               {
+                  if(coreArr[0]->responseTime == time - coreArr[0]->arrivalTime){
+
+                        coreArr[0]->responseTime = -1;
+                  }
                 //remove job from core
                 //update its timeRemaining,
                 //add old job back to the queue
                   priqueue_offer(&q, coreArr[0]);
 
-                temp->lastScheduled = time;
-
                 //assign new job to the core
                 coreArr[0] = temp;
+                coreArr[0]->lastScheduled = time;
+                coreArr[0]->responseTime = time - coreArr[0]->arrivalTime;
                 return(0);
               }else
               {
                 //add new job to the priority queue
-                coreArr[0]->lastScheduled = time;
                 priqueue_offer(&q, temp);
                 return(-1);
               }
@@ -323,7 +316,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
             break;
       }
     } else {
-        //TODO put multicore stuff here
+        //Multicore 
         int coreIndex = -1;
         //look for an open core
         for(int i = 0; i < numCores; i++){
@@ -337,6 +330,9 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
         if(coreIndex != -1){
             coreArr[coreIndex] = temp;
             coreArr[coreIndex]->responseTime = time - coreArr[coreIndex]->arrivalTime;
+            if(schedScheme == PSJF){
+              coreArr[coreIndex]->lastScheduled = time;
+            }
             return(coreIndex);
         } else { //otherwise we have to schedule
 
@@ -344,7 +340,6 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
             int lowestPriority;
             int lowestIndex;
             int tie;
-            int diff;
             switch(schedScheme)
             {
                 //non-preemptive
@@ -361,9 +356,8 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                 //update time difference
 
                 //first time update
-                diff = (time - prevTime);
-                coreArr[0]->timeRemaining -= diff;
-                //coreArr[0]->lastScheduled = time;
+                coreArr[0]->timeRemaining -=time - coreArr[0]->lastScheduled;
+                coreArr[0]->lastScheduled = time;
 
 
                 int highestRemTime = coreArr[0]->timeRemaining;
@@ -376,9 +370,9 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                 {
                     //calculate the new remaining time
                     //int timeDiff = time - coreArr[i]->lastScheduled;
-                    int timeDiff = time - prevTime;
-                    coreArr[i]->timeRemaining -= timeDiff;
-                    //coreArr[i]->lastScheduled = time;
+                    //int timeDiff = time - prevTime;
+                    coreArr[i]->timeRemaining -= time - coreArr[i]->lastScheduled;
+                    coreArr[i]->lastScheduled = time;
 
                     //see if the coreArr[i] remaining time is < than highestRemTime
                     if(coreArr[i]->timeRemaining > highestRemTime)
@@ -386,33 +380,30 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                       highestIndex = i;
                       highestRemTime = coreArr[i]->timeRemaining;
                     }
-                    //
-                    // if(coreArr[i]->timeRemaining == highestRemTime)
-                    // {
-                    //   if(coreArr[i]->arrivalTime<lowestArrivalTime)
-                    //   {
-                    //     lowestArrivalTime = coreArr[i]->arrivalTime;
-                    //     lowestArrivalTimeIndex = i;
-                    //   }
-                    // }
                 }
-                prevTime = time;
+              //  prevTime = time;
 
                 //check if the lowest remaining time in the coreArr is greater
                 //than  the new job, if so, assign it to that core
-                printf("Highest remaining time: %d at core %d, New Job runtime: %d \n", highestRemTime, highestIndex, running_time);
                 if(highestRemTime > running_time)
                 {
+
+                  if(coreArr[highestIndex]->responseTime == (time - coreArr[highestIndex]->arrivalTime))
+                  {
+                    coreArr[highestIndex]->responseTime = -1;
+                  }
                   priqueue_offer(&q, coreArr[highestIndex]);
                   coreArr[highestIndex] = temp;
                   //coreArr[highestIndex]->lastScheduled = time;
+
+                  if(coreArr[highestIndex]->responseTime == -1)
+                    coreArr[highestIndex]->responseTime = (time - coreArr[highestIndex]->arrivalTime);
                   return(highestIndex);
-                }else
-                {
+                } else {
                   priqueue_offer(&q, temp);
-                  return(-1);
+                  return -1;
                 }
-                    break;
+                break;
                 case PPRI :
                     lowestPriority = coreArr[0]->priority;
                     lowestIndex = 0;
@@ -450,7 +441,6 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                             for(int i=lowestIndex; i < numCores; i++){
 
                                 if(coreArr[i]->arrivalTime > coreArr[lowestIndex]->arrivalTime){
-
                                     lowestIndex = i;
                                 }
                             }
@@ -467,9 +457,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                                 priqueue_offer(&q, temp);
                                 return -1;
                             }
-
                         } else {
-
                             if(coreArr[lowestIndex]->arrivalTime > time){
                                 if(coreArr[lowestIndex]->lastScheduled == time){
 
@@ -487,7 +475,6 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
                     } else {
                         priqueue_offer(&q, temp);
                         return -1;
-
                     }
 
                     break;
@@ -498,7 +485,6 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
             }
         }
     }
-
 	return -1;
 }
 
@@ -518,6 +504,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
   @return -1 if core should remain idle.
  */
 int scheduler_job_finished(int core_id, int job_number, int time) {
+    //printf("\n\n\nRESPONSE TIME JOB %d is %d\n\n\n", coreArr[core_id]->pid, coreArr[core_id]->responseTime);
     totalResponseTime += coreArr[core_id]->responseTime;
     totalWaitingTime += time - coreArr[core_id]->arrivalTime - coreArr[core_id]->runningTime;
     totalTATime +=time - coreArr[core_id]->arrivalTime;
@@ -535,13 +522,20 @@ int scheduler_job_finished(int core_id, int job_number, int time) {
             coreArr[core_id]->lastScheduled = time;
             coreArr[core_id]->responseTime = time - coreArr[core_id]->arrivalTime;
         }
-
+        if(schedScheme == PSJF){
+          coreArr[core_id]->lastScheduled = time;
+            //printf("\n\n\nSCHEDULED JOB %d is %d\n\n\n", coreArr[core_id]->pid, coreArr[core_id]->responseTime);
+            if(coreArr[core_id]->responseTime == -1){
+                    coreArr[core_id]->responseTime = time - coreArr[core_id]->arrivalTime;
+                  //  coreArr[core_id]->lastScheduled = time;
+                   // printf("\n\n\nSCHEDULED JOB %d is %d\n\n\n", coreArr[core_id]->pid, coreArr[core_id]->responseTime);
+            }
+        }
       return coreArr[core_id]->pid;
     }
 
     return -1;
 }
-
 
 /**
   When the scheme is set to RR, called when the quantum timer has expired
@@ -581,7 +575,6 @@ int scheduler_quantum_expired(int core_id, int time)
     return coreArr[core_id]->pid;
 }
 
-
 /**
   Returns the average waiting time of all jobs scheduled by your scheduler.
   Assumptions:
@@ -592,7 +585,6 @@ float scheduler_average_waiting_time()
 {
 	return totalWaitingTime / numOfJobs;
 }
-
 
 /**
   Returns the average turnaround time of all jobs scheduled by your scheduler.
@@ -605,7 +597,6 @@ float scheduler_average_turnaround_time()
 	return totalTATime/numOfJobs;
 }
 
-
 /**
   Returns the average response time of all jobs scheduled by your scheduler.
   Assumptions:
@@ -617,7 +608,6 @@ float scheduler_average_response_time()
     return (totalResponseTime / numOfJobs);
 }
 
-
 /**
   Free any memory associated with your scheduler.
   Assumptions:
@@ -628,9 +618,7 @@ void scheduler_clean_up()
   //TODO: Liia do this
   //Free the core array
   free(coreArr);
-
 }
-
 
 /**
   This function may print out any debugging information you choose. This
@@ -651,9 +639,7 @@ void scheduler_show_queue()
     job_t* valptr = (job_t*)(temp->mvalue);
     //*job_t coreptr = (*job_t)(temp->mvalue);
 
-
     printf("   %d (%d) ", valptr->pid, valptr->core);
     temp = temp->mnext;
   }
-
 }
