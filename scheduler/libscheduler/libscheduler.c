@@ -84,7 +84,7 @@ int PSJFcomparer(const void *a, const void *b){
    job_t *jobA = (job_t *)a;
    job_t *jobB = (job_t *)b;
    //if running time of A is less than the remaining time of B, schedule it before
-   return (jobA->timeRemaining - jobB->timeRemaining);
+   return (jobA->arrivalTime - jobB->arrivalTime);
 }
 /**
  * PRI
@@ -114,7 +114,7 @@ int PPRIcomparer(const void *a, const void *b){
        return (jobA->priority - jobB->priority);
    }
    //if the priorities are the same, go off of job time
-   return (jobA->timeRemaining- jobB->timeRemaining);
+   return (jobA->arrivalTime - jobB->arrivalTime);
 }
 /**
  * RR
@@ -221,8 +221,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
     temp->priority = priority;
 
     temp->responseTime = -1;
-    //priqueue_offer(&q, temp);
-
+    
     //single core
     if(numCores == 1)
     {
@@ -256,7 +255,7 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
              return(0);
             } else {
                 //if new job is of higher priority than job currently running on core
-                if( priority < coreArr[0]->priority || ){
+                if( priority < coreArr[0]->priority){
                     //stop current job on core, put on queue
                     priqueue_offer(&q, coreArr[0]);
                     coreArr[0] = temp;
@@ -473,6 +472,7 @@ int scheduler_job_finished(int core_id, int job_number, int time) {
         job_t* temp = (job_t*)priqueue_poll(&q);
         //will have to do something for psjf
         coreArr[core_id] = temp;
+        coreArr[core_id]->lastScheduled = time;
         //set the response time that it's now been scheduled
         if(coreArr[core_id]->responseTime == -1) {
             coreArr[core_id]->responseTime = time - coreArr[core_id]->arrivalTime;
